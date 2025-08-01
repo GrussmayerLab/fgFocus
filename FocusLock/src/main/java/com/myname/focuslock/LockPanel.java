@@ -37,6 +37,7 @@ public class LockPanel extends ConfigurablePanel {
 	private JSpinner spinner_kp;
 	private JSpinner spinner_ki;
 	private JSpinner spinner_kd;
+	private JTextPane txtpnNm;
 	private JToggleButton btnEnable;
 	private JToggleButton btnLock;
 	private JButton btnCalibration_1;
@@ -83,9 +84,9 @@ public class LockPanel extends ConfigurablePanel {
 		btnLock.setBounds(125, 80, 85, 44);
 		add(btnLock);
 		
-		JTextPane txtpnNm = new JTextPane();
+		txtpnNm = new JTextPane();
 		txtpnNm.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		txtpnNm.setText("0.0 nm");
+		txtpnNm.setText("0.0 µm");
 		txtpnNm.setEnabled(false);
 		txtpnNm.setEditable(false);
 		txtpnNm.setBounds(125, 174, 62, 21);
@@ -228,6 +229,10 @@ public class LockPanel extends ConfigurablePanel {
 	    spinner_kd.addChangeListener(e -> {
 	    	double kd = (double) spinner_kd.getValue();
 	    	focusTask.setDifferentialGain(kd);
+	    });
+	    
+	    focusTask.setOnErrorUpdate((error) -> {
+	    	txtpnNm.setText(error + " µm");
 	    });
 	}
 

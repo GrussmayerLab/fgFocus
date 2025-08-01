@@ -1,6 +1,7 @@
 package com.myname.focuslock;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 import java.lang.Math;
 
 import org.micromanager.Studio;
@@ -18,6 +19,8 @@ public class FocusTask {
     private double refMean = 0;
     private double mean = 0;
     private boolean start = false;
+    private Consumer<Double> onErrorUpdate;
+
     // PID constants
     private double Kp = 0;
     private double Ki = 0;
@@ -33,6 +36,10 @@ public class FocusTask {
     	this.studio = studio;
     	this.core = studio.core();
     	this.camera = camera;
+    }
+    
+    public void setOnErrorUpdate(Consumer<Double> callback) {
+        this.onErrorUpdate = callback;
     }
     
     public void setProportionalGain(double Kp) {
@@ -81,6 +88,7 @@ public class FocusTask {
     	}
     	
     	double error = mean - refMean;
+    	onErrorUpdate.accept(error * calSlope);
     	long currentTime = System.currentTimeMillis();
     	double deltaTime = (previousTime == 0) ? 1.0 : (currentTime - previousTime) / 1000.0; // seconds
     	previousTime = currentTime;
@@ -89,6 +97,7 @@ public class FocusTask {
     	integral += error * deltaTime;
     	double derivative = (deltaTime > 0) ? (error - previousError) / deltaTime : 0;
     	previousError = error;
+    	
     	
     	deltaZ = (Kp * error) + (Ki * integral) + (Kd * derivative);
     	
