@@ -81,20 +81,24 @@ public class GaussianFitter {
             weights[i] = 1.0;
         }
 
-        LeastSquaresProblem problem = new LeastSquaresBuilder()
-                .start(initialGuess)
-                .model(model)
-                .target(target)
-                .weight(new DiagonalMatrix(weights))
-                .lazyEvaluation(false)
-                .maxEvaluations(1000)
-                .maxIterations(1000)
-                .build();
-
-        LeastSquaresOptimizer optimizer = new LevenbergMarquardtOptimizer();
-        LeastSquaresOptimizer.Optimum optimum = optimizer.optimize(problem);
-
-        return optimum.getPoint().toArray(); // [Amplitude, Mean, Sigma]
+        try {
+	        LeastSquaresProblem problem = new LeastSquaresBuilder()
+	                .start(initialGuess)
+	                .model(model)
+	                .target(target)
+	                .weight(new DiagonalMatrix(weights))
+	                .lazyEvaluation(false)
+	                .maxEvaluations(1000)
+	                .maxIterations(1000)
+	                .build();
+	
+	        LeastSquaresOptimizer optimizer = new LevenbergMarquardtOptimizer();
+	        LeastSquaresOptimizer.Optimum optimum = optimizer.optimize(problem);
+	
+	        return optimum.getPoint().toArray(); // [Amplitude, Mean, Sigma]
+        } catch (Exception e) {
+        	return new double[] {Double.NaN, Double.NaN, Double.NaN};
+        }
     }
 
 

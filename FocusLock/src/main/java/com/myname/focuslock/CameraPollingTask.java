@@ -6,6 +6,7 @@ import mmcorej.CMMCore;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -14,22 +15,24 @@ import java.util.function.Consumer;
 public class CameraPollingTask {
     private final Studio studio;
     private final CMMCore privateCore ;
-    private final CMMCore mainCore;
     private final String cameraName = "gFocus Light Sensor";
     private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();    
     public volatile short[] pixelData;
     private Consumer<short[]> onImageUpdate;
+    private final Object coreLock = new Object();
+    private final Object schedulerLock = new Object();
+
 //    private boolean isCameraAttached = false;
     private int average;
     private double exposure;
     
-    public CameraPollingTask(Studio studio) {
+    public CameraPollingTask(Studio studio, CMMCore privateCore) {
         this.studio = studio;
-        this.privateCore  = new CMMCore();
-        this.mainCore  = studio.getCMMCore();
+        this.privateCore  = privateCore;
 
         try {
         	privateCore.loadSystemConfiguration("C:/Program Files/Micro-Manager-2.0/gFocus/gFocus.cfg");
+        	privateCore.setCameraDevice(cameraName);
         	this.setAverage(1);
         	this.setExposure(1.0);
             studio.logs().logMessage("Private core for light sensor initialized");
@@ -63,9 +66,11 @@ public class CameraPollingTask {
     
     public void setExposure(double expo) {
         try {
-            privateCore.setProperty(cameraName, "Time [ms]", expo);
-            studio.logs().logMessage("Set exposure to: " + expo);
-            exposure = expo;
+        	synchronized (coreLock) {
+	            privateCore.setProperty(cameraName, "Time [ms]", expo);
+	            studio.logs().logMessage("Set exposure to: " + expo);
+	            exposure = expo;
+        	}
         } catch (Exception e) {
             studio.logs().showError("Failed to set exposure: " + e.getMessage());
         }
@@ -73,9 +78,11 @@ public class CameraPollingTask {
 
     public void setAverage(int avg) {
         try {
-            privateCore.setProperty(cameraName, "Average #", avg);
-            studio.logs().logMessage("Set averaging to: " + avg);
-            average = avg;
+        	synchronized (coreLock) {
+	            privateCore.setProperty(cameraName, "Average #", avg);        	
+	            studio.logs().logMessage("Set averaging to: " + avg);
+	            average = avg;
+        	}
         } catch (Exception e) {
             studio.logs().showError("Failed to set averaging: " + e.getMessage());
         }
@@ -86,67 +93,61 @@ public class CameraPollingTask {
     }
 
     public void start() {
-        if (scheduler.isShutdown() || scheduler.isTerminated()) {
-            scheduler = Executors.newSingleThreadScheduledExecutor();
-        }
-
-        scheduler.scheduleWithFixedDelay(() -> {
-            final int maxRetries = 10;
-            for (int attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-//                	attachCamera();
-                	privateCore.setCameraDevice(cameraName);
-                    privateCore.snapImage();
-                    Object img = privateCore.getImage();
-//                    detachCamera();
-                    
-                    if (img instanceof byte[]) {
-                        byte[] raw = (byte[]) img;
-                        int numPixels = raw.length / 2;
-                        pixelData = new short[numPixels];
-                        for (int i = 0; i < numPixels; i++) {
-                            int low = raw[2 * i] & 0xFF;
-                            int high = raw[2 * i + 1] & 0xFF;
-                            pixelData[i] = (short) ((high << 8) | low);
-                        }
-                    } else if (img instanceof short[]) {
-                        pixelData = (short[]) img;
-                    } else {
-                        studio.logs().showError("Unsupported image type: " + img.getClass().getSimpleName());
-                        return;
-                    }
-
-                    // Success
-//                    StringBuilder sb = new StringBuilder();
-//                    sb.append("Snapshot at ").append(System.currentTimeMillis()).append("\n");
-//                    for (int i = 0; i < Math.min(256, pixelData.length); i++) {
-//                        sb.append(pixelData[i]).append(" ");
-//                    }
-
-                    if (onImageUpdate != null) {
-//                        studio.logs().logMessage(sb.toString());
-                        onImageUpdate.accept(pixelData);
-                    }
-                    return; // done if successful
-
-                } catch (Exception e) {
-                    if (attempt == maxRetries) {
-                    	try {
-                            privateCore.reset();
-                        	privateCore.loadSystemConfiguration("C:/Program Files/Micro-Manager-2.0/gFocus/gFocus.cfg");
-                        	this.setAverage(average);
-                        	this.setExposure(exposure);
-                        	studio.logs().logMessage("Max retries: " + e.toString());
-                        	attempt = 0;
-                    	} catch(Exception e1) {
-                    		studio.logs().logMessage("reset: " + e1.toString());
-                    	}
-                        
-                    }
-                    // no sleep; retry immediately
-                }
+        synchronized (schedulerLock) {
+            if (scheduler.isShutdown() || scheduler.isTerminated()) {
+                scheduler = Executors.newSingleThreadScheduledExecutor();
             }
-        }, 0, 100, TimeUnit.MILLISECONDS);
+
+            scheduler.scheduleWithFixedDelay(() -> {
+                final int maxRetries = 10;
+
+                for (int attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        synchronized (coreLock) {
+                            privateCore.snapImage();
+                            Object img = privateCore.getImage();
+
+                            if (img instanceof byte[]) {
+                                byte[] raw = (byte[]) img;
+                                int numPixels = raw.length / 2;
+                                pixelData = new short[numPixels];
+                                for (int i = 0; i < numPixels; i++) {
+                                    int low = raw[2 * i] & 0xFF;
+                                    int high = raw[2 * i + 1] & 0xFF;
+                                    pixelData[i] = (short) ((high << 8) | low);
+                                }
+                            } else if (img instanceof short[]) {
+                            	pixelData = (short[]) img;
+                            } else {
+                                studio.logs().showError("Unsupported image type: " + img.getClass().getSimpleName());
+                                return;
+                            }
+
+                            if (onImageUpdate != null) {
+                                onImageUpdate.accept(pixelData);
+                            }
+
+                            return;  // Success
+                        }
+                    } catch (Exception e) {
+                        if (attempt == maxRetries) {
+                            try {
+                                synchronized (coreLock) {
+                                    privateCore.reset();
+                                    privateCore.loadSystemConfiguration("C:/Program Files/Micro-Manager-2.0/gFocus/gFocus.cfg");
+                                    setAverage(average);
+                                    setExposure(exposure);
+                                }
+                                studio.logs().logMessage("Max retries reached. Core reset attempted.");
+                            } catch (Exception e1) {
+                                studio.logs().logMessage("Reset failed: " + e1.toString());
+                            }
+                        }
+                        // No delay between retries
+                    }
+                }
+            }, 0, 100, TimeUnit.MILLISECONDS);
+        }
     }
 
     public void stop() {
@@ -157,39 +158,38 @@ public class CameraPollingTask {
         final int maxRetries = 10;
 
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-//            	attachCamera(); // <- Attach before using
-            	privateCore.setCameraDevice(cameraName);
-            	privateCore.snapImage();
-                Object img = privateCore.getImage();
-//                detachCamera(); // <- Detach after using
-                
-                if (img instanceof byte[]) {
-                    byte[] raw = (byte[]) img;
-                    int numPixels = raw.length / 2;
-                    short[] result = new short[numPixels];
-                    for (int i = 0; i < numPixels; i++) {
-                        int low = raw[2 * i] & 0xFF;
-                        int high = raw[2 * i + 1] & 0xFF;
-                        result[i] = (short) ((high << 8) | low);
+            synchronized (coreLock) {
+                try {
+                    privateCore.snapImage();
+                    Object img = privateCore.getImage();
+                    
+                    if (img instanceof byte[]) {
+                        byte[] raw = (byte[]) img;
+                        int numPixels = raw.length / 2;
+                        short[] result = new short[numPixels];
+                        for (int i = 0; i < numPixels; i++) {
+                            int low = raw[2 * i] & 0xFF;
+                            int high = raw[2 * i + 1] & 0xFF;
+                            result[i] = (short) ((high << 8) | low);
+                        }
+                        return result;
+                    } else if (img instanceof short[]) {
+                        return (short[]) img;
+                    } else {
+                        studio.logs().showError("Unsupported image type: " + img.getClass().getSimpleName());
+                        return null;
                     }
-                    return result;
-                } else if (img instanceof short[]) {
-                    return (short[]) img;
-                } else {
-                    studio.logs().showError("Unsupported image type: " + img.getClass().getSimpleName());
-                    return null;
-                }
 
-            } catch (Exception e) {
-                if (attempt == maxRetries) {
-                    studio.logs().showError("snapOnce failed after " + maxRetries + " attempts: " + e.getMessage());
-                    e.printStackTrace();
+                } catch (Exception e) {
+                    if (attempt == maxRetries) {
+                        studio.logs().showError("snapOnce failed after " + maxRetries + " attempts: " + e.getMessage());
+                    }
+                    // retry
                 }
-                // immediate retry
             }
         }
 
-        return null; // All attempts failed
+        return null;
     }
 }
+

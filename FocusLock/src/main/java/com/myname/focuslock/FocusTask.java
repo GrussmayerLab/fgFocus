@@ -1,37 +1,57 @@
 package com.myname.focuslock;
-import com.myname.focuslock.CameraPollingTask;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.lang.Math;
 
-import org.apache.commons.math3.analysis.function.Abs;
 import org.micromanager.Studio;
 import mmcorej.CMMCore;
 
 public class FocusTask {
 	private Studio studio;
 	private CMMCore core;
+	private CameraPollingTask camera;
 	
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     
     private String stage;
     private double calSlope = 0;
     private double refMean = 0;
-    private double focusThreshold = 2;
     private double mean = 0;
     private boolean start = false;
+    // PID constants
+    private double Kp = 0;
+    private double Ki = 0;
+    private double Kd = 0;
     
-    public FocusTask(Studio studio) {
+    // PID state
+    private double integral = 0;
+    private double previousError = 0;
+    private long previousTime = 0;
+    
+    
+    public FocusTask(Studio studio, CameraPollingTask camera) {
     	this.studio = studio;
     	this.core = studio.core();
+    	this.camera = camera;
+    }
+    
+    public void setProportionalGain(double Kp) {
+    	this.Kp = Kp;
+    }
+    
+    public void setIntegratoinGain(double Ki) {
+    	this.Ki = Ki;
+    }
+    
+    public void setDifferentialGain(double Kd) {
+    	this.Kd = Kd;
     }
     
     public double[] startFocus(double slopeCal) {
     	calSlope = slopeCal;
     	double[] result = new double[3];
     	try {
-    		short[] data = new CameraPollingTask(studio).snapOnce();
+    		short[] data = camera.snapOnce();
             result = new GaussianFitter(data).fit();
             refMean = result[1];
     	} catch(Exception e) {
@@ -51,7 +71,7 @@ public class FocusTask {
     	}
     	
     	try {
-    		short[] data = new CameraPollingTask(studio).snapOnce();
+    		short[] data = camera.snapOnce();
             double[] result = new GaussianFitter(data).fit();
             mean = result[1];
             
@@ -60,29 +80,37 @@ public class FocusTask {
     		return;
     	}
     	
-    	double deltaMean = mean - refMean;
+    	double error = mean - refMean;
+    	long currentTime = System.currentTimeMillis();
+    	double deltaTime = (previousTime == 0) ? 1.0 : (currentTime - previousTime) / 1000.0; // seconds
+    	previousTime = currentTime;
     	
-    	if (Math.abs(deltaMean) > focusThreshold) {
-    		deltaZ = deltaMean * calSlope;
-    		
-        	try {
-        		startZ = core.getPosition(stage);
-        	} catch (Exception e) {
-        		studio.logs().showError("Failed to get stage position: " + e.getMessage());
-        		return;
-        	}
-        	
-        	double newZ = startZ + deltaZ;
-        	
-        	try {
-        		core.setPosition(stage, newZ);
-        		Thread.sleep(1000); // Give hardware a moment to settle
-        	} catch (Exception e) {
-        		studio.logs().showError("Stage movement failed: " + e.getMessage());
-        		return;
-        	}
+    	// PID calculation
+    	integral += error * deltaTime;
+    	double derivative = (deltaTime > 0) ? (error - previousError) / deltaTime : 0;
+    	previousError = error;
+    	
+    	deltaZ = (Kp * error) + (Ki * integral) + (Kd * derivative);
+    	
+		deltaZ = deltaZ * calSlope;
+		
+    	try {
+    		startZ = core.getPosition(stage);
+    	} catch (Exception e) {
+    		studio.logs().showError("Failed to get stage position: " + e.getMessage());
+    		return;
     	}
-        scheduler.schedule(this::focussing, 2000, java.util.concurrent.TimeUnit.MILLISECONDS); // 2.0s between steps
+    	
+    	double newZ = startZ + deltaZ;
+    	
+    	try {
+    		core.setPosition(stage, newZ);
+    		Thread.sleep(1000); // Give hardware a moment to settle
+    	} catch (Exception e) {
+    		studio.logs().showError("Stage movement failed: " + e.getMessage());
+    		return;
+    	}
+	    scheduler.schedule(this::focussing, 1000, java.util.concurrent.TimeUnit.MILLISECONDS); // 1.0s between steps
     }
     
     public void stopFocus() {

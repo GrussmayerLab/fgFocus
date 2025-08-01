@@ -3,9 +3,6 @@ package com.myname.focuslock;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
-import com.myname.focuslock.GaussianFitter;
-import com.myname.focuslock.CameraPollingTask;
-
 import org.micromanager.Studio;
 
 import mmcorej.CMMCore;
@@ -13,12 +10,12 @@ import mmcorej.CMMCore;
 public class CalibrateTask {
     private Studio studio;
     private CMMCore core;
-    
+    private CameraPollingTask camera;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private BiConsumer<Double, Double> onCalibrationFinished;
 
-    private final int numSteps = 6;
-    private final double stepSizeUm = 0.25;
+    private final int numSteps = 5;
+    private final double stepSizeUm = 1;
     
     private final double[] positionsUm = new double[numSteps];
     private final double[] pixelMeans = new double[numSteps];
@@ -27,9 +24,11 @@ public class CalibrateTask {
     private double startZ = 0;
     private String stage;
     
-    public CalibrateTask(Studio studio) {
+    
+    public CalibrateTask(Studio studio, CameraPollingTask camera) {
     	this.studio = studio;
     	this.core = studio.core();
+    	this.camera = camera;
     	
     	try {
     		this.stage = core.getFocusDevice();
@@ -45,6 +44,7 @@ public class CalibrateTask {
     public void startCalibration() {
     	try {
     		startZ = core.getPosition(stage);
+    		core.setPosition(stage, startZ - 2.0); // start at -2 um of the reference
     	} catch (Exception e) {
     		studio.logs().showError("Failed to get initial stage position: " + e.getMessage());
     		return;
@@ -59,7 +59,7 @@ public class CalibrateTask {
     		return;
     	}
     	
-    	double targetZ = startZ + currentStep * stepSizeUm;
+    	double targetZ = (startZ-2.0) + currentStep * stepSizeUm;
     	
     	try {
     		core.setPosition(stage, targetZ);
@@ -70,10 +70,10 @@ public class CalibrateTask {
     	}
     	
     	try {
-    		short[] data = new CameraPollingTask(studio).snapOnce();
+    		short[] data = camera.snapOnce();
             double[] result = new GaussianFitter(data).fit();
             double mean = result[1];
-            
+
             positionsUm[currentStep] = targetZ;
             pixelMeans[currentStep] = mean;
             studio.logs().logMessage("Step " + currentStep + ": Z=" + targetZ + ", Mean=" + mean);

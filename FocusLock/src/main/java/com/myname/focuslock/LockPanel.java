@@ -11,6 +11,7 @@ import de.embl.rieslab.emu.ui.uiproperties.UIProperty;
 import de.embl.rieslab.emu.ui.uiproperties.flag.NoFlag;
 import de.embl.rieslab.emu.utils.EmuUtils;
 import de.embl.rieslab.emu.utils.exceptions.IncorrectUIPropertyTypeException;
+import mmcorej.CMMCore;
 
 import javax.swing.JTextField;
 import javax.swing.JLabel;
@@ -33,6 +34,9 @@ public class LockPanel extends ConfigurablePanel {
 	private static final long serialVersionUID = 1L;
 	private JSpinner spinner;
 	private JSpinner spinner_1;
+	private JSpinner spinner_kp;
+	private JSpinner spinner_ki;
+	private JSpinner spinner_kd;
 	private JToggleButton btnEnable;
 	private JToggleButton btnLock;
 	private JButton btnCalibration_1;
@@ -40,7 +44,7 @@ public class LockPanel extends ConfigurablePanel {
 	private CameraPollingTask cameraPollingTask;
 	private Consumer<short[]> pixelDataListener;
 	private Consumer<double[]> referanceDataListener;
-
+	private FocusTask focusTask;
 	// properties
 	public final String FOCUS_AVERAGE = "average";
 	public final String FOCUS_EXPOSURE = "exposure";
@@ -51,6 +55,8 @@ public class LockPanel extends ConfigurablePanel {
 	private double slopeCal;
 	private SystemController systemController_;
 	private Studio studio;
+	private CMMCore privateCore;
+
 	public LockPanel(String label, SystemController systemController) {
 		super(label);
 		setLayout(null);
@@ -111,7 +117,48 @@ public class LockPanel extends ConfigurablePanel {
 		lblDistance.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		lblDistance.setBounds(22, 182, 80, 13);
 		add(lblDistance);
-        cameraPollingTask = new CameraPollingTask(systemController_.getStudio()); // studio must be set externally
+		
+		JLabel lblPidSettings = new JLabel("PID Settings");
+		lblPidSettings.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		lblPidSettings.setBounds(68, 227, 80, 13);
+		add(lblPidSettings);
+		
+		spinner_kp = new JSpinner();
+		spinner_kp.setModel(new SpinnerNumberModel(Double.valueOf(0), Double.valueOf(0), Double.valueOf(1000), Double.valueOf((Double) 0.01)));
+		spinner_kp.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		spinner_kp.setBounds(125, 250, 85, 24);
+		add(spinner_kp);
+		
+		spinner_ki = new JSpinner();
+		spinner_ki.setModel(new SpinnerNumberModel(Double.valueOf(0), Double.valueOf(0), Double.valueOf(1000), Double.valueOf((Double) 0.01)));
+		spinner_ki.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		spinner_ki.setBounds(125, 283, 85, 24);
+		add(spinner_ki);
+		
+		spinner_kd = new JSpinner();
+		spinner_kd.setModel(new SpinnerNumberModel(Double.valueOf(0), Double.valueOf(0), Double.valueOf(1000), Double.valueOf((Double) 0.01)));
+		spinner_kd.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		spinner_kd.setBounds(125, 317, 85, 24);
+		add(spinner_kd);
+		
+		JLabel lblKp = new JLabel("Kp");
+		lblKp.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		lblKp.setBounds(22, 261, 45, 13);
+		add(lblKp);
+		
+		JLabel lblKi = new JLabel("Ki");
+		lblKi.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		lblKi.setBounds(22, 294, 45, 13);
+		add(lblKi);
+		
+		JLabel lblKd = new JLabel("Kd");
+		lblKd.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		lblKd.setBounds(22, 328, 45, 13);
+		add(lblKd);
+		
+		privateCore = new CMMCore();
+        cameraPollingTask = new CameraPollingTask(systemController_.getStudio(), privateCore); // studio must be set externally
+		focusTask = new FocusTask(systemController_.getStudio(), cameraPollingTask);
 
 		// TODO Auto-generated constructor stub
 	}
@@ -123,7 +170,6 @@ public class LockPanel extends ConfigurablePanel {
 
 	    SwingUIListeners.addChangeListenerOnNumericalValue(this, propertyExposure, spinner);
 	    SwingUIListeners.addChangeListenerOnNumericalValue(this, propertyAverage, spinner_1);
-
 	    // Disable Lock Focus button by default
 	    btnLock.setEnabled(false);
 
@@ -136,14 +182,15 @@ public class LockPanel extends ConfigurablePanel {
 	            lblStatus.setText("Focuslock disabled for calibration.");
 	        }
 
-	        CalibrateTask calibrateTask = new CalibrateTask(systemController_.getStudio());
+	        CalibrateTask calibrateTask = new CalibrateTask(systemController_.getStudio(), cameraPollingTask);
 
 	        calibrateTask.setOnCalibrationFinished((slope, intercept) -> {
 	            lblStatus.setText(String.format("Calibrated: %.4f µm/pixel", slope));
-	            slopeCal = slope;
-
-	            // Enable Focus Lock button after calibration
-	            btnLock.setEnabled(true);
+	            if (!Double.isNaN(slope)) {
+		            slopeCal = slope;
+		            // Enable Focus Lock button after calibration
+		            btnLock.setEnabled(true);
+	            }
 	        });
 
 	        calibrateTask.startCalibration();
@@ -158,17 +205,29 @@ public class LockPanel extends ConfigurablePanel {
 	    spinner_1.addChangeListener(e -> {
 	    	average = (int) spinner_1.getValue();
 //	    	studio.logs().logMessage("Updated average to: " + average);
-            if (cameraPollingTask != null) {
-            	cameraPollingTask.setAverage(average);
-            }
+        	cameraPollingTask.setAverage(average);
+            
 	    });
 	    
 	    spinner.addChangeListener(e -> {
 	    	exposure = (double) spinner.getValue();
 //	    	studio.logs().logMessage("Updated exposure to: " + exposure);
-            if (cameraPollingTask != null) {
-            	cameraPollingTask.setExposure(exposure);
-            }
+        	cameraPollingTask.setExposure(exposure);
+	    });
+	    
+	    spinner_kp.addChangeListener(e -> {
+	    	double kp = (double) spinner_kp.getValue();
+	    	focusTask.setProportionalGain(kp);
+	    });
+	    
+	    spinner_ki.addChangeListener(e -> {
+	    	double ki = (double) spinner_ki.getValue();
+	    	focusTask.setIntegratoinGain(ki);
+	    });
+	    
+	    spinner_kd.addChangeListener(e -> {
+	    	double kd = (double) spinner_kd.getValue();
+	    	focusTask.setDifferentialGain(kd);
 	    });
 	}
 
@@ -255,8 +314,6 @@ public class LockPanel extends ConfigurablePanel {
 	}
 	
 	protected void focusLocking(boolean enabled) {
-		FocusTask focusTask = new FocusTask(systemController_.getStudio());
-
 		if (enabled) {
 			double[] result = focusTask.startFocus(slopeCal);
 	        lblStatus.setText("Start Focuslock");
