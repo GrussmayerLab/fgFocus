@@ -120,6 +120,17 @@ public class FocusTask {
     	
     	try {
     		core.setPosition(stage, newZ);
+    		studio.logs().logMessage(
+			    String.format(
+			        "PID Debug | error=%.6f, deltaTime=%.4fs, integral=%.6f, derivative=%.6f, " +
+			        "Kp=%.4f, Ki=%.4f, Kd=%.4f, " +
+			        "OldZ=%.6f, deltaZ=%.6f, NewZ=%.6f",
+			        error, deltaTime, integral, derivative,
+			        Kp, Ki, Kd,
+			        startZ, deltaZ, newZ
+			    )
+			);
+
     		Thread.sleep(1000); // Give hardware a moment to settle
     	} catch (Exception e) {
     		studio.logs().showError("Stage movement failed: " + e.getMessage());
