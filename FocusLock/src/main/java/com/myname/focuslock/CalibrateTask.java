@@ -77,7 +77,7 @@ public class CalibrateTask {
             positionsUm[currentStep] = targetZ;
             pixelMeans[currentStep] = mean;
             studio.logs().logMessage("Step " + currentStep + ": Z=" + targetZ + ", Mean=" + mean);
-            
+       
             currentStep++;
             scheduler.schedule(this::stepCalibration, 1000, java.util.concurrent.TimeUnit.MILLISECONDS); // 1.0s between steps
     	} catch (Exception e) {
@@ -110,7 +110,7 @@ public class CalibrateTask {
         studio.logs().logMessage(String.format("Calibration complete. µm per mean pixel value = %.6f, intercept = %.3f", slope, intercept));
         
         if (onCalibrationFinished != null) {
-            onCalibrationFinished.accept(slope, intercept);
+            onCalibrationFinished.accept(-slope, intercept);
         }
     }
 }

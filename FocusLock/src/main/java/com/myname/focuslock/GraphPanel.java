@@ -127,6 +127,7 @@ public class GraphPanel extends ConfigurablePanel {
         double a = params[0];
         double mu = params[1];
         double sigma = params[2];
+        
 
         for (int x = 1; x <= 128; x++) {
             double y = a * Math.exp(-Math.pow(x - mu, 2) / (2 * sigma * sigma));

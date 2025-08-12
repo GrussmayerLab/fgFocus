@@ -123,10 +123,8 @@ public class FocusTask {
     		studio.logs().logMessage(
 			    String.format(
 			        "PID Debug | error=%.6f, deltaTime=%.4fs, integral=%.6f, derivative=%.6f, " +
-			        "Kp=%.4f, Ki=%.4f, Kd=%.4f, " +
 			        "OldZ=%.6f, deltaZ=%.6f, NewZ=%.6f",
 			        error, deltaTime, integral, derivative,
-			        Kp, Ki, Kd,
 			        startZ, deltaZ, newZ
 			    )
 			);
