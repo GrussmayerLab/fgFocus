@@ -35,7 +35,13 @@ public class FocusTask {
     public FocusTask(Studio studio, CameraPollingTask camera) {
     	this.studio = studio;
     	this.core = studio.core();
-    	this.camera = camera;
+    	this.camera = camera;    	
+    	
+    	try {
+    		this.stage = core.getFocusDevice();
+    	} catch(Exception e) {
+    		studio.logs().showError("Could not find focus stage: " + e.toString());
+    	}
     }
     
     public void setOnErrorUpdate(Consumer<Double> callback) {
