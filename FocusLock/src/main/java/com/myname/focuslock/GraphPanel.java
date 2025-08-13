@@ -12,7 +12,9 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-
+import org.jfree.chart.title.TextTitle;
+import java.awt.Font;
+import org.jfree.chart.ui.RectangleEdge;
 
 import de.embl.rieslab.emu.ui.ConfigurablePanel;
 
@@ -21,7 +23,9 @@ public class GraphPanel extends ConfigurablePanel {
     private XYSeries rawSeries;
     private XYSeries fittedSeries;
     private XYSeries referenceSeries;
-
+    private TextTitle footer;
+    private double fittedMu = 0.0;      // from your Gaussian fit
+    private double referenceMu = 0.0; // reference Gaussian mean
     public GraphPanel(int[] intensityValues, double[] referenceValues) {
         super("GraphPanel");
 
@@ -55,15 +59,19 @@ public class GraphPanel extends ConfigurablePanel {
         plot.setBackgroundPaint(new Color(30, 30, 30));                  // Inside plot area
         plot.setDomainGridlinePaint(Color.GRAY);
         plot.setRangeGridlinePaint(Color.GRAY);
-
+        
+        // Set legend text color
+        chart.getLegend().setBackgroundPaint(Color.DARK_GRAY);
+        chart.getLegend().setItemPaint(Color.GRAY);
+        
         // Axis styling
         NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
         NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
         yAxis.setRange(0.0, 4095.0);
-        xAxis.setLabelPaint(Color.WHITE);
-        yAxis.setLabelPaint(Color.WHITE);
-        xAxis.setTickLabelPaint(Color.WHITE);
-        yAxis.setTickLabelPaint(Color.WHITE);
+        xAxis.setLabelPaint(Color.GRAY);
+        yAxis.setLabelPaint(Color.GRAY);
+        xAxis.setTickLabelPaint(Color.GRAY);
+        yAxis.setTickLabelPaint(Color.GRAY);
 
         // Renderer styling
 //        XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
@@ -78,6 +86,17 @@ public class GraphPanel extends ConfigurablePanel {
         ChartPanel chartPanel = new ChartPanel(chart);
         chartPanel.setBackground(Color.DARK_GRAY);
         add(chartPanel, BorderLayout.CENTER);
+        
+        String footerText = String.format("Fitted Gaussian μ = %.2f pixel  |   Reference Gaussian μ = %.2f pixel",
+                fittedMu, referenceMu);
+
+		// Create and style the footer
+		footer = new TextTitle(footerText, new Font("SansSerif", Font.PLAIN, 12)); // light gray text
+		footer.setPaint(Color.GRAY);
+		footer.setPosition(RectangleEdge.BOTTOM);
+		
+		// Add to chart
+		chart.addSubtitle(footer);
 
         // Initial population
         updateGraph(intensityValues);
@@ -109,6 +128,8 @@ public class GraphPanel extends ConfigurablePanel {
             a = params[0];
             mu = params[1];
             sigma = params[2];
+            
+            fittedMu = mu;
         } catch (Exception e) {
         	System.out.println("Gaussian fitting failed: " + e.getMessage());
             // You could log the stack trace if needed
@@ -119,6 +140,7 @@ public class GraphPanel extends ConfigurablePanel {
             double y = a * Math.exp(-Math.pow(x - mu, 2) / (2 * sigma * sigma));
             fittedSeries.add(x, y);
         }
+        updateFooter();
     }
     
     public void updateReferenceGraph(double [] params) {
@@ -128,12 +150,22 @@ public class GraphPanel extends ConfigurablePanel {
         double mu = params[1];
         double sigma = params[2];
         
+        referenceMu = mu;
+        
 
         for (int x = 1; x <= 128; x++) {
             double y = a * Math.exp(-Math.pow(x - mu, 2) / (2 * sigma * sigma));
             referenceSeries.add(x, y);
         }
+        updateFooter();
     }
+    
+    private void updateFooter() {
+        footer.setText(String.format("Fitted Gaussian μ = %.2f pixel  |   Reference Gaussian μ = %.2f pixel",
+                                     fittedMu, referenceMu));
+    }
+    
+
 
 
     // EMU-required overrides

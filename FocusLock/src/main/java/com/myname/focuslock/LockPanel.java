@@ -86,10 +86,10 @@ public class LockPanel extends ConfigurablePanel {
 		
 		txtpnNm = new JTextPane();
 		txtpnNm.setFont(new Font("Tahoma", Font.PLAIN, 12));
-		txtpnNm.setText("0.0 µm");
+		txtpnNm.setText("0.00 nm");
 		txtpnNm.setEnabled(false);
 		txtpnNm.setEditable(false);
-		txtpnNm.setBounds(125, 174, 62, 21);
+		txtpnNm.setBounds(125, 174, 85, 21);
 		add(txtpnNm);
 		
 		lblStatus = new JLabel("Status");
@@ -232,7 +232,7 @@ public class LockPanel extends ConfigurablePanel {
 	    });
 	    
 	    focusTask.setOnErrorUpdate((error) -> {
-	    	txtpnNm.setText(error + " µm");
+	    	txtpnNm.setText(String.format("%.2f", error*1000.0) + " nm");
 	    });
 	}
 

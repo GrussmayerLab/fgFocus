@@ -76,6 +76,13 @@ In the interface:
 
 **Happy Imaging!**
 
+## Note
+To adjust the **number of steps** or the **step size** used in the calibration script, open `CalibrateTask.java` and modify the following variables:
+
+```java
+private final int numSteps = 5;
+private final double stepSizeUm = 1;
+```
 
 ## License
 

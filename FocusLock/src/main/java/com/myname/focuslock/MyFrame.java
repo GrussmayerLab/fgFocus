@@ -12,10 +12,10 @@ import de.embl.rieslab.emu.ui.ConfigurableMainFrame;
 import de.embl.rieslab.emu.utils.settings.Setting;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
+
 import java.awt.GridLayout;
 
 public class MyFrame extends ConfigurableMainFrame {
-
 	/**
 	 * Launch the application.
 	 */
