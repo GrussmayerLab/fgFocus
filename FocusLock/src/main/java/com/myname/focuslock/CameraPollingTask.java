@@ -42,28 +42,6 @@ public class CameraPollingTask {
         }
     }
     
-//    private void attachCamera() {
-//        if (!isCameraAttached) {
-//            try {
-//                privateCore.setCameraDevice(cameraName);
-//                isCameraAttached = true;
-//            } catch (Exception e) {
-//            	studio.logs().logMessage("Failed to attach camera: " + e.getMessage());
-//            }
-//        }
-//    }
-//
-//    private void detachCamera() {
-//        if (isCameraAttached) {
-//            try {
-//                privateCore.setCameraDevice("");  // Detach by setting to empty string
-//                isCameraAttached = false;
-//            } catch (Exception e) {
-//            	studio.logs().logMessage("Failed to detach camera: " + e.getMessage());
-//            }
-//        }
-//    }
-    
     public void setExposure(double expo) {
         try {
         	synchronized (coreLock) {
