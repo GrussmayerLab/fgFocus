@@ -78,7 +78,7 @@ public class CalibrateTask {
 
             positionsUm[currentStep] = targetZ;
             pixelMeans[currentStep] = mean;
-//            studio.logs().logMessage("Step " + currentStep + ": Z=" + targetZ + ", Mean=" + mean);
+            studio.logs().logMessage("Step " + currentStep + ": Z=" + targetZ + ", Mean=" + mean);
        
             currentStep++;
             scheduler.schedule(this::stepCalibration, 1000, java.util.concurrent.TimeUnit.MILLISECONDS); // 1.0s between steps
