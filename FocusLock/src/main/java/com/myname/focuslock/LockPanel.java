@@ -114,7 +114,7 @@ public class LockPanel extends ConfigurablePanel {
 		btnCalibration_1.setBounds(17, 134, 193, 30);
 		add(btnCalibration_1);
 		
-		JLabel lblDistance = new JLabel("Distance ");
+		JLabel lblDistance = new JLabel("Drift");
 		lblDistance.setFont(new Font("Tahoma", Font.PLAIN, 12));
 		lblDistance.setBounds(22, 182, 80, 13);
 		add(lblDistance);
