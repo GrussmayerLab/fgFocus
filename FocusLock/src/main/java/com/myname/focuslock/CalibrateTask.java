@@ -14,14 +14,16 @@ public class CalibrateTask {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private BiConsumer<Double, Double> onCalibrationFinished;
 
+    private int currentStep = 0;
+    private double startZ = 0;
+    private double zLowerBound =  -1.0;
+    private double zUpperBound = 1.0;
     private final int numSteps = 5;
-    private final double stepSizeUm = 1;
+    private final double stepSizeUm = (zUpperBound - zLowerBound) / numSteps;
     
     private final double[] positionsUm = new double[numSteps];
     private final double[] pixelMeans = new double[numSteps];
     
-    private int currentStep = 0;
-    private double startZ = 0;
     private String stage;
     
     
@@ -44,7 +46,7 @@ public class CalibrateTask {
     public void startCalibration() {
     	try {
     		startZ = core.getPosition(stage);
-    		core.setPosition(stage, startZ - 2.0); // start at -2 um of the reference
+    		core.setPosition(stage, startZ + zLowerBound); // start at -1 um of the reference
     	} catch (Exception e) {
     		studio.logs().showError("Failed to get initial stage position: " + e.getMessage());
     		return;
@@ -59,7 +61,7 @@ public class CalibrateTask {
     		return;
     	}
     	
-    	double targetZ = (startZ-2.0) + currentStep * stepSizeUm;
+    	double targetZ = (startZ + zLowerBound) + currentStep * stepSizeUm;
     	
     	try {
     		core.setPosition(stage, targetZ);
