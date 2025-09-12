@@ -129,7 +129,7 @@ public class FocusTask {
 //			    )
 //			);
 
-    		Thread.sleep(1000); // Give hardware a moment to settle
+//    		Thread.sleep(1000); // Give hardware a moment to settle
     	} catch (Exception e) {
     		studio.logs().showError("Stage movement failed: " + e.getMessage());
     		return;
@@ -139,6 +139,10 @@ public class FocusTask {
     
     public void stopFocus() {
     	start = false;
+        refMean = 0;
+        integral = 0;
+        previousError = 0;
+        previousTime = 0;
+        onErrorUpdate.accept(0.0);
     }
-
 }
