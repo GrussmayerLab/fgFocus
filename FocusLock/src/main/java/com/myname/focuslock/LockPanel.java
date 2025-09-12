@@ -328,6 +328,7 @@ public class LockPanel extends ConfigurablePanel {
 		} else {
 			focusTask.stopFocus();
 	        lblStatus.setText("Stop Focuslock");
+	        referanceDataListener.accept(new double[3]);
 		}
 	}
 	

@@ -139,6 +139,11 @@ public class FocusTask {
     
     public void stopFocus() {
     	start = false;
+        refMean = 0;
+        integral = 0;
+        previousError = 0;
+        previousTime = 0;
+        onErrorUpdate.accept(0.0);
     }
 
 }
