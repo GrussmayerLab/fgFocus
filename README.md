@@ -1,6 +1,6 @@
-# Good Focus (gFocus)
+# Fairly Good Focus (fgFocus)
 
-**gFocus** is an active focus-lock system designed to maintain sharp focus during extended imaging experiments, such as single-molecule and live-cell imaging. It corrects axial drift (movement along the Z-axis) that can occur over time, ensuring your sample stays perfectly in focus.
+**fgFocus** is an active focus-lock system designed to maintain sharp focus during extended imaging experiments, such as single-molecule and live-cell imaging. It corrects axial drift (movement along the Z-axis) that can occur over time, ensuring your sample stays perfectly in focus.
 
 This project is inspired by similar systems like qgFocus and pgFocus and follows the same naming convention.
 
@@ -59,8 +59,8 @@ This project is inspired by similar systems like qgFocus and pgFocus and follows
 
 1. Connect the gFocus system to your PC using a USB-C cable.
 2. Create a folder called `gFocus` in the root of Micro-Manager.  
-2. In Micro-Manager, go to **Device > Hardware Configuration Wizard** and create a new config file to only add `gFocus` and save it in the `gFocus` folder. 
-3. Launch the plugin: **Plugins > User Interface > EMU** — the gFocus control panel will open. Ignore, the warning that it is not configured, `gFocus` runs on a separate MMCore instance.
+2. In Micro-Manager, go to **Device > Hardware Configuration Wizard** and create a new config file to only add `fgFocus` and save it in the `fgFocus` folder. 
+3. Launch the plugin: **Plugins > User Interface > EMU** — the fgFocus control panel will open. Ignore, the warning that it is not configured, `fgFocus` runs on a separate MMCore instance.
 
 You should see the following interface:
 
