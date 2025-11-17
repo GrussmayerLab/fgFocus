@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 public class CameraPollingTask {
     private final Studio studio;
     private final CMMCore privateCore ;
-    private final String cameraName = "gFocus Light Sensor";
+    private final String cameraName = "fgFocus Light Sensor";
     private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();    
     public volatile short[] pixelData;
     private Consumer<short[]> onImageUpdate;
@@ -31,7 +31,7 @@ public class CameraPollingTask {
         this.privateCore  = privateCore;
 
         try {
-        	privateCore.loadSystemConfiguration("C:/Program Files/Micro-Manager-2.0/gFocus/gFocus.cfg");
+        	privateCore.loadSystemConfiguration("C:/Program Files/Micro-Manager-2.0/fgFocus/fgFocus.cfg");
         	privateCore.setCameraDevice(cameraName);
         	this.setAverage(1);
         	this.setExposure(1.0);
@@ -112,7 +112,7 @@ public class CameraPollingTask {
                             try {
                                 synchronized (coreLock) {
                                     privateCore.reset();
-                                    privateCore.loadSystemConfiguration("C:/Program Files/Micro-Manager-2.0/gFocus/gFocus.cfg");
+                                    privateCore.loadSystemConfiguration("C:/Program Files/Micro-Manager-2.0/fgFocus/fgFocus.cfg");
                                     setAverage(average);
                                     setExposure(exposure);
                                 }

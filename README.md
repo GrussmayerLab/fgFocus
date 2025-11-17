@@ -45,10 +45,10 @@ This project is inspired by similar systems like qgFocus and pgFocus and follows
    - Follow the instructions here: [EMU Guide](https://jdeschamps.github.io/EMU-guide/)
 
 3. **Install the gFocus Plugin**  
-   - Copy the `fgFocus.jar` file into the `EMU` folder in your Micro-Manager directory.
+   - Copy the `FocusLock.jar` file into the `EMU` folder in your Micro-Manager directory.
 
 4. **Install the Device Adapter**  
-   - Copy the `mmgr_dal_gFocus.dll` file into the root directory of Micro-Manager.  
+   - Copy the `mmgr_dal_fgFocus.dll` file into the root directory of Micro-Manager.  
    - To modify or rebuild the adapter:  
      - Follow the [Micro-Manager Visual Studio setup guide](https://micro-manager.org/Visual_Studio_project_settings_for_device_adapters)  
      - Place `.h` files in the **header** folder and `.cpp` files in the **source** folder.  
