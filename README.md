@@ -45,7 +45,7 @@ This project is inspired by similar systems like qgFocus and pgFocus and follows
    - Follow the instructions here: [EMU Guide](https://jdeschamps.github.io/EMU-guide/)
 
 3. **Install the gFocus Plugin**  
-   - Copy the `gFocus.jar` file into the `EMU` folder in your Micro-Manager directory.
+   - Copy the `fgFocus.jar` file into the `EMU` folder in your Micro-Manager directory.
 
 4. **Install the Device Adapter**  
    - Copy the `mmgr_dal_gFocus.dll` file into the root directory of Micro-Manager.  
@@ -58,7 +58,7 @@ This project is inspired by similar systems like qgFocus and pgFocus and follows
 ## Usage
 
 1. Connect the gFocus system to your PC using a USB-C cable.
-2. Create a folder called `gFocus` in the root of Micro-Manager.  
+2. Create a folder called `fgFocus` in the root of Micro-Manager.  
 2. In Micro-Manager, go to **Device > Hardware Configuration Wizard** and create a new config file to only add `fgFocus` and save it in the `fgFocus` folder. 
 3. Launch the plugin: **Plugins > User Interface > EMU** — the fgFocus control panel will open. Ignore, the warning that it is not configured, `fgFocus` runs on a separate MMCore instance.
 
